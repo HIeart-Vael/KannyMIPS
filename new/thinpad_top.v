@@ -111,17 +111,18 @@ wire[7:0] number;
 SEG7_LUT segL(.oSEG1(dpy0), .iDIG(number[3:0])); //dpy0是低位数码管
 SEG7_LUT segH(.oSEG1(dpy1), .iDIG(number[7:4])); //dpy1是高位数码管
 
-reg[15:0] led_bits;
-assign leds = led_bits;
-
-always@(posedge clock_btn or posedge reset_btn) begin
-    if(reset_btn)begin //复位按下，设置LED为初始值
-        led_bits <= 16'h1;
-    end
-    else begin //每次按下时钟按钮，LED循环左移
-        led_bits <= {led_bits[14:0],led_bits[15]};
-    end
-end
+//reg[15:0] led_bits;
+assign leds = 16'hffff;
+assign dpy0 = 8'hff;
+assign dpy1 = 8'hff;
+//always@(posedge clock_btn or posedge reset_btn) begin
+//    if(reset_btn)begin //复位按下，设置LED为初始值
+//        led_bits <= 16'h1;
+//    end
+//    else begin //每次按下时钟按钮，LED循环左移
+//        led_bits <= {led_bits[14:0],led_bits[15]};
+//    end
+//end
 
 //直连串口接收发送演示，从直连串口收到的数据再发送出去
 //wire [7:0] ext_uart_rx;
@@ -185,7 +186,7 @@ end
 
 wire[31:0] inst_addr;
 wire[31:0] inst;
-wire rom_ce;
+wire rom_en;
 
 wire[31:0] ram_write_addr;
 wire[31:0] ram_write_data;
@@ -199,7 +200,7 @@ KannyMIPS KannyMIPS0(
         .rst        (reset_btn),
         .rom_inst_i (inst),
         .rom_addr_o (inst_addr),
-        .rom_en   (rom_ce),
+        .rom_en   (rom_en),
 
         .ram_data_i (ram_read_data),
         .ram_addr_o (ram_write_addr),
@@ -209,34 +210,35 @@ KannyMIPS KannyMIPS0(
         .ram_select (ram_select)
     );
 
-SRAM_Controller SRAM_Controller0 (
+sram_controller Sram_Controller0 (
         .rst                (reset_btn),
-        .clk_50M            (clk_50M),
+        .clk                (clk_50M),
 
-        .rom_data_o         (inst),
-        .rom_addr_i         (inst_addr),
-        .ce_i               (rom_ce),
-        
-        .ram2_data_o        (ram_read_data),
-        .ram2_addr_i        (ram_write_addr),
-        .ram2_data_i        (ram_write_data),
-        .ram2_we_i          (ram_write_en),
-        .ram2_sel_i         (ram_select),
-        .ram2_ce_i          (ram_en),
+        .rom_ce             (rom_en),
+        .rom_addr           (inst_addr),
+        .base_ram_ce        (base_ram_ce_n),
+        .base_ram_read_en   (base_ram_oe_n),
+        .base_ram_write_en  (base_ram_we_n),
+        .base_ram_select    (base_ram_be_n),
+        .base_ram_addr      (base_ram_addr),
 
         .base_ram_data      (base_ram_data),
-        .base_ram_addr      (base_ram_addr),
-        .base_ram_be_n      (base_ram_be_n),
-        .base_ram_ce_n      (base_ram_ce_n),
-        .base_ram_oe_n      (base_ram_oe_n),
-        .base_ram_we_n      (base_ram_we_n),
+        .inst_from_rom      (inst),
 
-        .ext_ram_data       (ext_ram_data),
+        .ram_ce             (ram_en),
+        .ram_write_en       (ram_write_en),
+        .ram_select         (ram_select),
+        .ram_write_addr     (ram_write_addr),
+        .ram_write_data     (ram_write_data),
+        .ext_ram_ce         (ext_ram_ce_n),
+        .ext_ram_read_en    (ext_ram_oe_n),
+        .ext_ram_write_en   (ext_ram_we_n),
+        .ext_ram_select     (ext_ram_be_n),
         .ext_ram_addr       (ext_ram_addr),
-        .ext_ram_be_n       (ext_ram_be_n),
-        .ext_ram_ce_n       (ext_ram_ce_n),
-        .ext_ram_oe_n       (ext_ram_oe_n),
-        .ext_ram_we_n       (ext_ram_we_n)
+
+        .ext_ram_data      (ext_ram_data),
+        .data_from_ram      (ram_read_data)
+
     );
 
 endmodule
